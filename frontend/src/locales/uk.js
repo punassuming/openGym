@@ -3649,4 +3649,13 @@ export default {
   "Your webhooks stop sending while Integrations is off. They stay set up.": "Поки «Інтеграції» вимкнено, твої вебхуки нічого не надсилають. Вони лишаються налаштованими.",
   "{0} of {1} modules on.": "Увімкнено модулів: {0} з {1}.",
   "{0} stops syncing while Health is off. Nothing is disconnected, and it catches up once Health is back.": "Поки «Здоров'я» вимкнено, {0} не синхронізується. Нічого не від’єднується, і все наздожене, щойно «Здоров'я» повернеться.",
+  "Aliases recorded": "Aliases recorded",
+  "Movements without a name": "Movements without a name",
+  "This browser can’t open .gz files. Import the .json saved alongside the export instead.": "This browser can’t open .gz files. Import the .json saved alongside the export instead.",
+  "Tonal Strength Score": "Tonal Strength Score",
+  "Tonal doesn’t name its movements — only an id. Movements without an alias stay as their id until you name them.": "Tonal doesn’t name its movements — only an id. Movements without an alias stay as their id until you name them.",
+  "Tonal movements without a name": "Tonal movements without a name",
+  "Tonal’s own total differs from the total recomputed from its sets on some workouts — check the set weights.": "Tonal’s own total differs from the total recomputed from its sets on some workouts — check the set weights.",
+  "{0} aliases recorded": { one: "{0} псевдонім записаний", few: "{0} псевдоніми записані", many: "{0} псевдонімів записано" },
+  "{0} workouts are already here and will be left alone.": { one: "{0} тренування вже тут і залишиться без змін.", few: "{0} тренування вже тут і залишаться без змін.", many: "{0} тренувань вже тут і залишаться без змін." },
 }

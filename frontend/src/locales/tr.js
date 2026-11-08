@@ -3652,4 +3652,13 @@ export default {
   "Your webhooks stop sending while Integrations is off. They stay set up.": "“Entegrasyonlar” kapalıyken webhook'ların bir şey göndermez. Kurulu kalırlar.",
   "{0} of {1} modules on.": "{1} modülden {0} tanesi açık.",
   "{0} stops syncing while Health is off. Nothing is disconnected, and it catches up once Health is back.": "“Sağlık” kapalıyken {0} eşitlemeyi durdurur. Hiçbir bağlantı kesilmez, “Sağlık” geri gelince her şeyi yakalar.",
+  "Aliases recorded": "Aliases recorded",
+  "Movements without a name": "Movements without a name",
+  "This browser can’t open .gz files. Import the .json saved alongside the export instead.": "This browser can’t open .gz files. Import the .json saved alongside the export instead.",
+  "Tonal Strength Score": "Tonal Strength Score",
+  "Tonal doesn’t name its movements — only an id. Movements without an alias stay as their id until you name them.": "Tonal doesn’t name its movements — only an id. Movements without an alias stay as their id until you name them.",
+  "Tonal movements without a name": "Tonal movements without a name",
+  "Tonal’s own total differs from the total recomputed from its sets on some workouts — check the set weights.": "Tonal’s own total differs from the total recomputed from its sets on some workouts — check the set weights.",
+  "{0} aliases recorded": "{0} aliases recorded",
+  "{0} workouts are already here and will be left alone.": "{0} workouts are already here and will be left alone.",
 }
