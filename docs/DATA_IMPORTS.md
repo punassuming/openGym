@@ -36,6 +36,7 @@ These exports work without any editing:
 | StrongLifts 5×5 | Settings → **Export** |
 | Fitbod | Log → ⋯ → **Export Data** (`WorkoutExport.csv`) |
 | JEFIT | jefit.com → Settings → Data Controls → **Export Data** |
+| Tonal | ToneGet export (`tonal_workouts_*.json.gz`, or the `.json` saved alongside it) — see [Tonal](#tonal) |
 
 Other files work too, as long as they have a date, an exercise name and something measured
 (weight and reps, a time or a distance). See [your own CSV](#your-own-csv) below.
@@ -99,6 +100,60 @@ describes them). openGym reads its exercise logs (`60x10,65x8` per exercise and
 day) and takes the time of each workout from its session. JEFIT doesn't write the unit, so weights
 are imported as written.
 
+## Tonal
+
+Tonal itself offers no lift-log export. The community tool
+[ToneGet](https://github.com/curlrequests/toneget) exports your history as
+`tonal_workouts_YYYYMMDD_HHMMSS.json.gz` (a `.json` is saved alongside it).
+Pick either file under **Settings → Data & backup → Import from another app**.
+
+What comes over:
+
+- **Workouts and sets** — date, workout type (PROGRAM / ON_DEMAND / QUICK_FIT /
+  LIVE / MOVEMENT / ASSESSMENT / Custom), title, Tonal's own totals, and every
+  set's weight, reps, Tonal 1RM and range of motion. Weights are in lb in the
+  file and converted to your profile unit. Re-importing the same file adds
+  nothing: workouts are deduped by their Tonal id, not by day, so two Tonal
+  sessions on one day stay two workouts.
+- **Strength Score** — history (overall / Upper / Lower / Core) and the current
+  per-muscle breakdown, kept as Tonal's own score, not as an e1RM. It does not
+  move when you log manually afterwards: after your last Tonal session it
+  freezes, and a manual workout leaves it unchanged.
+- **Workout catalog and custom workouts** — the catalog is kept so a later
+  re-import resolves the same titles instead of duplicating anything. Custom
+  templates are kept as catalog entries; they do not become routines on their
+  own, because the export carries only their title and type, not their
+  movement list.
+- **Power, tempo and ROM-weight fields** (a `--full` export) are kept verbatim
+  on each set and shown in a per-set details view. They are never mapped into
+  RPE, RIR or tempo.
+
+What Tonal does *not* export is movement names — only a movement id. A
+movement stays as its id until you name it:
+
+- **Alias map (optional, supplied at import time).** A CSV with columns
+  `movement_id, exercise, category, gym, equipment, source_name, source, notes`
+  maps a movement id to its canonical exercise — e.g. `mov-001, Chest Press,
+  Chest, Home / Tonal, Tonal, Tonal Chest Press, tonal,`. The canonical
+  exercise is the identity (Chest Press, not "Tonal Chest Press"); the source
+  name is kept as an alias, with its gym and equipment, so the same lift done
+  on a different machine stays one exercise with one 1RM curve. The 3-column
+  form (`movement_id, exercise, category`) also reads.
+- **Naming them later.** Movements without an alias are listed in the import
+  summary as "Tonal movements without a name". Give one an alias and later
+  imports from the same gym resolve it.
+
+Tonal's `weight` is the set weight; a `baseWeight` in the file is never used
+as the weight. If Tonal's own workout total differs from the total recomputed
+from its sets by more than rounding, the summary says so — that is usually a
+per-cable / dual-cable weight, and both numbers stay visible.
+
+> [!NOTE]
+> No data is bundled with the app: no sample export, no catalogue data. The
+> importer only ever reads a file you supply at import time, and the exercise
+> media stays out of the repository — it comes from the existing upstream
+> staging step at build time, not from files committed with the app.
+
 ## Not supported (yet)
 
 Boostcamp, GymBook and Alpha Progression don't document an export format openGym could read
@@ -106,6 +161,9 @@ safely, and wger has no export of its workout log (its API names exercises by nu
 (with your numbers changed) in a [GitHub issue](https://github.com/DuarteSantos8/openGym/issues)
 is the fastest way to get it added. A CSV with a date, an exercise and a weight or reps column
 usually works already, see [your own CSV](#your-own-csv).
+
+Progression (Zoltan Demant) and Garmin running history are next for this fork; Loop habits
+after them. See the fork plan.
 
 ## Hevy, directly
 

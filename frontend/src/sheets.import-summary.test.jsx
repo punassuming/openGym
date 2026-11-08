@@ -122,3 +122,74 @@ describe('the import summary with routines', () => {
     expect(useUI.getState().sheets).toHaveLength(0)
   })
 })
+
+// Tonal (ToneGet) history: workouts + sets, Strength Score, and movements
+// the file does not name — only a movement id.
+describe('the import summary for Tonal', () => {
+  beforeEach(() => {
+    globalThis.IS_REACT_ACT_ENVIRONMENT = true
+    useUI.setState({ sheets: [], toasts: [], toastMsg: '' })
+    useStore.setState(s => ({ S: { ...s.S, unit: 'kg', workouts: [], customEx: [], bodyweight: [], tonalStrength: null, tonalCatalog: {} } }))
+  })
+  afterEach(() => { if (root) act(() => root.unmount()); root = null; document.body.innerHTML = '' })
+
+  const tonal = JSON.stringify({
+    version: '3.0', exportedAt: '2026-09-16T10:00:00Z', exportedWith: 'ToneGet v3.1.0',
+    workouts: [
+      { id: 'act-001', beginTime: '2026-09-09T08:00:00Z', workoutType: 'PROGRAM', workoutId: 'tmpl-001',
+        totalVolume: 3510, totalReps: 46,
+        workoutSetActivity: [
+          { movementId: 'mov-001', weight: 85, repCount: 10, oneRepMax: 113, rangeOfMotion: 0.94 },
+          { movementId: 'mov-002', weight: 60, repCount: 8, oneRepMax: 75, rangeOfMotion: 0.88 },
+        ] },
+      { id: 'act-002', beginTime: '2026-09-16T08:00:00Z', workoutType: 'ON_DEMAND', workoutId: 'tmpl-002',
+        totalVolume: 4098, totalReps: 54,
+        workoutSetActivity: [
+          { movementId: 'mov-001', weight: 87, repCount: 10, oneRepMax: 116, rangeOfMotion: 0.95 },
+          { movementId: 'mov-002', weight: 62, repCount: 8, oneRepMax: 78, rangeOfMotion: 0.89 },
+        ] },
+    ],
+    activityNames: { 'act-001': 'Full Body Strength', 'act-002': 'Upper Body Burn' },
+    workoutCatalog: {
+      'tmpl-001': { id: 'tmpl-001', title: 'Full Body Strength', workoutType: 'PROGRAM' },
+      'tmpl-002': { id: 'tmpl-002', title: 'Upper Body Burn', workoutType: 'ON_DEMAND' },
+    },
+    strengthScoreHistory: [
+      { date: '2026-09-09', overall: 480, upper: 505, lower: 440, core: 395 },
+      { date: '2026-09-16', overall: 490, upper: 510, lower: 445, core: 396 },
+    ],
+    currentStrengthScores: { parsed: { regions: { Overall: 490, Upper: 510, Lower: 445, Core: 396 }, muscles: {} } },
+  })
+
+  it('shows the Strength Score range and the unnamed movements, and imports by Tonal id', async () => {
+    const file = new File([tonal], 'tonal_workouts_20260916_100000.json', { type: 'application/json' })
+    importFromApp(file)
+    for (let i = 0; i < 50 && !useUI.getState().sheets.length; i++) await new Promise(r => setTimeout(r, 5))
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    act(() => root.render(useUI.getState().sheets.at(-1).render(() => {})))
+    expect(host.querySelector('h3').textContent).toBe('Import from Tonal')
+    expect(host.textContent).toContain('Tonal Strength Score')
+    expect(host.textContent).toContain('480 → 490')
+    expect(host.textContent).toContain('Movements without a name')
+    expect(host.textContent).toContain('Tonal movements without a name')
+    const importBtn = [...host.querySelectorAll('button')].find(b => b.textContent === 'Import')
+    act(() => importBtn.click())
+    expect(useUI.getState().toastMsg).toBe('2 workouts imported')
+    const S = useStore.getState().S
+    expect(S.workouts).toHaveLength(2)
+    expect(S.workouts.map(w => w.tonalId)).toEqual(['act-001', 'act-002'])
+    expect(S.tonalStrength.history.map(h => h.overall)).toEqual([480, 490, 490])
+    expect(Object.keys(S.tonalCatalog)).toEqual(['tmpl-001', 'tmpl-002'])
+    // A re-import adds nothing: dedupe is by Tonal id, not by day.
+    importFromApp(file)
+    for (let i = 0; i < 50 && !useUI.getState().sheets.length; i++) await new Promise(r => setTimeout(r, 5))
+    host = document.createElement('div')
+    document.body.appendChild(host)
+    root = createRoot(host)
+    act(() => root.render(useUI.getState().sheets.at(-1).render(() => {})))
+    const again = [...host.querySelectorAll('button')].find(b => b.textContent === 'Nothing new to import')
+    expect(again).toBeTruthy()
+  })
+})

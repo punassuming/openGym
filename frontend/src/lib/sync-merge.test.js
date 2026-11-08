@@ -984,3 +984,25 @@ describe('body measurements across devices (#82)', () => {
     expect(next.measurements[0].t).toBe(1000)
   })
 })
+
+// Tonal Strength Score and catalog must merge across devices, not follow the
+// newer copy wholesale — a score imported on the other device would be lost.
+describe('Tonal Strength Score and catalog merge across devices', () => {
+  const strength = (overall, exportedAt) => ({
+    history: [{ date: exportedAt.slice(0, 10), kind: 'history', overall, upper: overall + 25, lower: overall - 40, core: overall - 85 }],
+    current: { regions: { Overall: overall }, muscles: [], exportedAt },
+  })
+  it('unions history by date+kind and catalog by template id, either way round', () => {
+    const A = base({ _ts: 100,
+      tonalStrength: strength(480, '2026-09-09T10:00:00Z'),
+      tonalCatalog: { 'tmpl-001': { title: 'Full Body Strength', workoutType: 'PROGRAM', isCustom: false } } })
+    const B = base({ _ts: 200,
+      tonalStrength: strength(490, '2026-09-16T10:00:00Z'),
+      tonalCatalog: { 'tmpl-002': { title: 'Upper Body Burn', workoutType: 'ON_DEMAND', isCustom: false } } })
+    const out = mergeStates(A, B)
+    expect(out.tonalStrength.history.map(h => h.overall)).toEqual([480, 490])
+    expect(out.tonalStrength.current.regions.Overall).toBe(490)
+    expect(Object.keys(out.tonalCatalog).sort()).toEqual(['tmpl-001', 'tmpl-002'])
+    expect(mergeStates(B, A).tonalStrength.history.map(h => h.overall)).toEqual([480, 490])
+  })
+})

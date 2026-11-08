@@ -45,6 +45,7 @@ import { exerciseMuscleSnapshot, loadOfWorkouts, MUSCLES, MUSCLE_NAME, muscleWei
 import { mergeImport, importHasWeighIn } from './lib/import-csv.js'
 import { addWeighIn, editWeighIn, removeWeighIn, restoreWeighIn, readingsOf, readingTime, allReadings, defaultTimeFor, cleanTime, timeOf, dailyModeOf, DEFAULT_TIME } from './lib/weigh-ins.js'
 import { parseImportFile, mergeImportedRoutines, freshRoutines } from './lib/import-apps.js'
+import { parseTonalFile, mergeTonal } from './lib/import-tonal.js'
 import { importHevyData, HevyApiError, HEVY_DEV_SETTINGS, mergeHevyRoutines, hevySummaryCounts } from './lib/import-hevy.js'
 import { buildPlanBundle, buildProgrammeBundle, parsePlan, mergePlan } from './lib/plan-share.js'
 import PrintPlanSheet from './components/PrintPlanSheet.jsx'
@@ -533,12 +534,22 @@ const effortLine = (effort, n, scale) => effort === 'none'
 function ImportSummary({ parsed, close }) {
   const st = useStore(s => s.S)
   const isBW = parsed.kind === 'bodyweight'
+  const isTonal = parsed.source === 'Tonal'
   // Our own body CSV brings measurement check-ins along (#718); a day that has one keeps it.
   const checkIns = isBW ? parsed.measurements || [] : []
   const haveM = checkIns.filter(m => (st.measurements || []).some(x => x.d === m.d)).length
+  // Tonal dedupes by Tonal activity id, not by day — two Tonal sessions on
+  // one day stay two workouts, and a day that already has a manual workout
+  // does not block a Tonal one.
   const have = (isBW
     ? parsed.bodyweight.filter(b => importHasWeighIn(st, b)).length
-    : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length) + haveM
+    : isTonal
+      ? parsed.workouts.filter(w => st.workouts.some(x => (x.tonalId || x.id) === (w.tonalId || w.id))).length
+      : parsed.workouts.filter(w => st.workouts.some(x => x.d === w.d)).length) + haveM
+  // Strength Score range for the summary tiles, from the history the file carries.
+  const strengthPts = isTonal ? (parsed.tonalStrength?.history || []).filter(h => h.overall != null) : []
+  const strengthFrom = strengthPts[0]?.overall ?? null
+  const strengthTo = strengthPts[strengthPts.length - 1]?.overall ?? null
   // Liftosaur and Liftoff bring plans as well (lib/import-apps.js); one already imported stays as it is.
   const plans = !isBW && parsed.routines?.routines?.length ? parsed.routines : null
   const newPlans = plans ? freshRoutines(st, plans) : 0
@@ -549,15 +560,18 @@ function ImportSummary({ parsed, close }) {
   const doImport = () => {
     let res, planRes
     update(s => {
-      res = mergeImport(s, parsed)
+      // Tonal merges by Tonal activity id (lib/import-tonal.js mergeTonal),
+      // not by day the way mergeImport does.
+      res = isTonal ? mergeTonal(s, parsed) : mergeImport(s, parsed)
       if (plans) planRes = mergeImportedRoutines(s, plans)
     })
     close()
     const measured = res.measurements ? tn('{0} measurement check-in imported', '{0} measurement check-ins imported', res.measurements) : ''
     const routinesLine = planRes?.added ? tn('{0} routine imported', '{0} routines imported', planRes.added) : ''
+    const tonalLine = isTonal && res.aliasesAdded ? tn('{0} alias recorded', '{0} aliases recorded', res.aliasesAdded) : ''
     toast(isBW
       ? (res.added || !measured ? tn('{0} weigh-in imported', '{0} weigh-ins imported', res.added) + (measured ? ' · ' + measured : '') : measured)
-      : [res.added || !routinesLine ? tn('{0} workout imported', '{0} workouts imported', res.added) : '', routinesLine].filter(Boolean).join(' · '))
+      : [res.added || !routinesLine ? tn('{0} workout imported', '{0} workouts imported', res.added) : '', routinesLine, tonalLine].filter(Boolean).join(' · '))
   }
 
   return <>
@@ -576,6 +590,11 @@ function ImportSummary({ parsed, close }) {
           <div className="tile"><div className="l">{t('Workouts')}</div><div className="v v-sm">{parsed.workouts.length}</div></div>
           <div className="tile"><div className="l">{t('Sets')}</div><div className="v v-sm">{parsed.sets}</div></div>
         </>}
+        {isTonal && strengthPts.length > 0 && <>
+          <div className="tile"><div className="l">{t('Tonal Strength Score')}</div><div className="v v-sm">{strengthFrom} → {strengthTo}</div></div>
+          <div className="tile"><div className="l">{t('Movements without a name')}</div><div className="v v-sm">{parsed.tonalUnresolved.length}</div></div>
+        </>}
+        {isTonal && (parsed.tonalAliases?.length || 0) > 0 && <div className="tile"><div className="l">{t('Aliases recorded')}</div><div className="v v-sm">{parsed.tonalAliases.length}</div></div>}
         {plans && <div className="tile"><div className="l">{t('Routines')}</div><div className="v v-sm">{plans.routines.length}</div></div>}
         <div className="tile"><div className="l">{t('Exercises matched')}</div><div className="v v-sm">{plans ? new Set([...(parsed.matchedIds || []), ...plans.matchedIds]).size : parsed.matched}</div></div>
         <div className="tile"><div className="l">{t('Added as your own')}</div><div className="v v-sm">{plans ? unmatched.length : parsed.created}</div></div>
@@ -590,8 +609,22 @@ function ImportSummary({ parsed, close }) {
     {hasWorkouts && !isBW && !parsed.fileUnit && !parsed.mixedUnits && <div className="small dim" style={{ marginBottom: 10 }}>
       {t('The file doesn’t say which unit it uses, so numbers are imported as they are.')}
     </div>}
+    {/* Tonal's own total vs the total recomputed from its sets: a mismatch is
+        usually a per-cable / dual-cable weight, so say so rather than silently
+        trusting one of them. */}
+    {isTonal && parsed.workouts.some(w => w.tonalVolumeMismatch) && <div className="small" style={{ color: 'var(--gold-ink)', marginBottom: 10 }}>
+      {t('Tonal’s own total differs from the total recomputed from its sets on some workouts — check the set weights.')}
+    </div>}
+    {/* Tonal exports carry only a movement id, no name. The sets still land
+        under the right canonical exercise once the movement is named with an
+        alias; until then they stay as their movement id. */}
+    {isTonal && parsed.tonalUnresolved.length > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
+      {t('Tonal doesn’t name its movements — only an id. Movements without an alias stay as their id until you name them.')}
+    </div>}
     {have > 0 && <div className="small dim" style={{ marginBottom: 10 }}>
-      {t('{0} days already have data here and will be left alone.', have)}
+      {isTonal
+        ? tn('{0} workout is already here and will be left alone.', '{0} workouts are already here and will be left alone.', have)
+        : t('{0} days already have data here and will be left alone.', have)}
     </div>}
     {/* The file rated its sets. Say so: the column is off by default, so the ratings would
         otherwise arrive invisibly and look like they had been dropped. */}
@@ -611,7 +644,7 @@ function ImportSummary({ parsed, close }) {
       {tn('{0} routine is already here and will be left alone.', '{0} routines are already here and will be left alone.', plans.routines.length - newPlans)}
     </div>}
     {!isBW && unmatched.length > 0 && <>
-      <h4 className="sec">{t('Not in the library, so they’re added as your own exercises')}</h4>
+      <h4 className="sec">{isTonal ? t('Tonal movements without a name') : t('Not in the library, so they’re added as your own exercises')}</h4>
       <div className="mchips" style={{ marginBottom: 12 }}>
         {unmatched.slice(0, 12).map(n => <span key={n} className="mchip capitalize">{n}</span>)}
         {unmatched.length > 12 && <span className="mchip">+{unmatched.length - 12}</span>}
@@ -626,14 +659,20 @@ function ImportSummary({ parsed, close }) {
   </>
 }
 
-/** Read a CSV/XML/JSON export, then show what it would do. */
+/** Read a CSV/XML/JSON export, then show what it would do. A .json.gz (Tonal's
+    usual export) is read as bytes and decompressed in lib/import-tonal.js. */
 export function importFromApp(file, onDone) {
   const rd = new FileReader()
-  rd.onload = () => {
+  rd.onload = async () => {
     let parsed
-    try { parsed = parseImportFile(String(rd.result), { unit: S().unit, customEx: S().customEx }) }
+    try {
+      parsed = /\.gz$/i.test(file.name || '')
+        ? await parseTonalFile(rd.result, { unit: S().unit, customEx: S().customEx })
+        : parseImportFile(String(rd.result), { unit: S().unit, customEx: S().customEx })
+    }
     catch (e) { toast(t('Could not read that file')); return }
     if (parsed.error === 'empty') { toast(t('That file is empty')); return }
+    if (parsed.error === 'gzip-unsupported') { toast(t('This browser can’t open .gz files. Import the .json saved alongside the export instead.')); return }
     // It looks like that app's export but does not read as one: say so rather than guess.
     if (parsed.error === 'format') { toast(t('This looks like a {0} export, but we couldn’t read it. Nothing was imported.', parsed.app)); return }
     if (parsed.error === 'opengym') { toast(t('That’s an openGym backup or plan file. Use Import backup, or import it on the Plan screen.')); return }
@@ -645,7 +684,8 @@ export function importFromApp(file, onDone) {
     onDone && onDone()
   }
   rd.onerror = () => toast(t('Could not read that file'))
-  rd.readAsText(file)
+  if (/\.gz$/i.test(file.name || '')) rd.readAsArrayBuffer(file)
+  else rd.readAsText(file)
 }
 
 /* ============================ import from Hevy API ============================ */

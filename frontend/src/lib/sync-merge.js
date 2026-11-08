@@ -36,6 +36,10 @@
  *     is the exception: the edit may have taken away the set the kept weight came from, so it
  *     is the best of the merged history and of the editing copy's own, and the other copy's
  *     can no longer bring a corrected typo back. exNotes, barWeights: key union
+ *   - tonalStrength: history unions by (date, kind), the muscle breakdown by muscle name,
+ *     the current snapshot from whichever copy was exported later (lib/tonal.js
+ *     mergeTonalStrength) — the newer copy alone would drop a Strength Score imported
+ *     on the other device. tonalCatalog: key union by template id.
  *   - balanceOverrides, loadKind, plates, dbLoad, dumbbells, stackWeights, exUnit, dayNotes, dayPhotos: key union; of a key both
  *     have, the entry set last by its own `_ts`, a clear included (mergeStampedMap), the newer
  *     copy's on a tie. For plates and dumbbells the key is the unit, so the inventory of one unit
@@ -84,6 +88,7 @@ import { mergeAdvent } from './advent.js'
 import { mergeChallenges } from './challenges.js'
 import { mergeDay, dailyModeOf, settleAll } from './weigh-ins.js'
 import { applyExerciseMerges } from './exercise-merge.js'
+import { mergeTonalStrength } from './tonal.js'
 
 const clone = o => JSON.parse(JSON.stringify(o))
 const list = v => (Array.isArray(v) ? v : [])
@@ -952,6 +957,12 @@ export function mergeStates(a0, b0, { prefer } = {}) {
   for (const f of ['exNotes', 'barWeights', 'exAliases', 'programmes', 'modules']) {
     if (n[f] || o[f]) out[f] = clone({ ...(o[f] || {}), ...(n[f] || {}) })
   }
+  // Tonal Strength Score and catalog (lib/tonal.js): history unions by
+  // (date, kind), muscles by name, current by later export; the catalog
+  // unions by template id. The newer copy wholesale would drop a score
+  // imported on the other device.
+  if (n.tonalStrength || o.tonalStrength) out.tonalStrength = mergeTonalStrength(n.tonalStrength, o.tonalStrength)
+  if (n.tonalCatalog || o.tonalCatalog) out.tonalCatalog = clone({ ...(o.tonalCatalog || {}), ...(n.tonalCatalog || {}) })
   // The plate-loading choices (lib/plates.js) are stamped the same way: an exercise's loading and
   // a unit's plate inventory are each one choice, made on one device, that a later set logged on
   // the other must not undo.

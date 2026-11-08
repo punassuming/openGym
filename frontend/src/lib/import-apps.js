@@ -13,6 +13,7 @@
 // log date) is kept as that day, never shifted through UTC.
 
 import { parseCSV, parseImport, parseWorkoutRows, matchExercise, isNoMatch, importId, priorCustom, bpFromName, roundWeight } from './import-csv.js'
+import { parseTonal, isTonalExport } from './import-tonal.js'
 import { EXIDX, canonicalExId } from './exercises.js'
 import { uid } from './format.js'
 import { LIFTOSAUR_EXERCISES } from './liftosaur-exercises.js'
@@ -616,6 +617,12 @@ export function parseImportFile(text, opts = {}) {
 function parseJson(s, opts) {
   let o
   try { o = JSON.parse(s) } catch { return { error: 'unrecognised' } }
+  // Tonal (ToneGet) history: a JSON export, or the .json saved alongside a
+  // .json.gz (the gzipped file is read by parseTonalFile in lib/import-tonal.js,
+  // which importFromApp calls for a .gz file). No alias map here yet — the
+  // movements arrive as their movementIds, flagged name-unresolved, until
+  // the user names them with an alias (lib/canonical-exercises.js).
+  if (isTonalExport(o)) return parseTonal(o, opts)
   if (isLiftosaurJson(o)) return parseLiftosaurJson(o, opts)
   if (Array.isArray(o)) {
     if (!o.length) return { error: 'empty' }

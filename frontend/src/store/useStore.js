@@ -158,6 +158,11 @@ export const DEF = {
   // every time you do the movement ("seat 4, pin 7"). Distinct from a routine's `note`, which
   // belongs to one exercise in one plan, and from a session note, which belongs to one day.
   exNotes: {}, exAliases: {},
+  // Tonal (ToneGet) history, from a user-supplied import (lib/import-tonal.js):
+  // Strength Score history + current muscle breakdown, and the workout
+  // catalog (template id -> title/type) so a re-import resolves the same
+  // titles. Sync-merged by lib/sync-merge.js, never wholesale.
+  tonalStrength: null, tonalCatalog: {},
   // Favourite exercise ids (issue #6) — sorted to the top of the picker/Library. Personal, so
   // it syncs with the profile but is never part of a shared plan bundle (lib/favourites.js).
   favEx: [],
