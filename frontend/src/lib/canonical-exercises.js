@@ -27,7 +27,10 @@
 // Calves first-class?), Push/Pull/Legs as routine vs exercise groupings,
 // alias scope (proposed: gym + equipment + source, in one record).
 //
-// Answered Nov 8, 2026 (recorded in the taxonomy draft):
+// Answered Nov 8, 2026 (recorded in the taxonomy draft), plus Nov 10, 2026:
+//   All 24 suggested canonicals approved, consolidated — see the entries
+//   below. Lying Face Curl stays in Curl: Tonal's own categoryHint for it
+//   is "curl", so Biceps stands unless the live catalogue says otherwise.
 //   Q1 YES — Incline Chest Press IS separate from Chest Press: the angle
 //     changes muscle emphasis enough to be its own canonical. Flat vs
 //     Machine stays one exercise. Decline Chest Press is assumed separate
@@ -80,6 +83,35 @@ export const CANONICAL_EXERCISES = [
   { id: 'deadlift', name: 'Deadlift', group: 'hamstrings', primary: 'Hamstrings', secondary: ['Glutes', 'Back', 'Quads'], pattern: 'hinge', compound: true },
   { id: 'calf_raise', name: 'Calf Raise', group: 'calves', primary: 'Calves', secondary: [], pattern: 'isolation', compound: false },
   { id: 'crunch', name: 'Crunch', group: 'core', primary: 'Abs', secondary: ['Obliques'], pattern: 'isolation', compound: false },
+  // --- Approved Nov 10, 2026: all 24 suggested canonicals, consolidated.
+  // Plank + Core Stability merged into one; Hip Stability folded into
+  // Warm-Up / Mobility (mobility) and Glute Kickback (loaded kickbacks);
+  // Warm-Up / Mobility, Plyometric and Cardio are non-lift canonicals
+  // (nonLift: true) — they import Tonal history but are not loaded lifts.
+  // No splits anywhere else. Alias selection is unchanged: creating an
+  // alias never creates a canonical exercise (see makeAliasRecord).
+  { id: 'plank_core_stability', name: 'Plank / Core Stability', group: 'core', primary: 'Abs', secondary: ['Obliques', 'Glutes', 'Shoulders'], pattern: 'hold', compound: false },
+  { id: 'lunge', name: 'Lunge', group: 'quads', primary: 'Quads', secondary: ['Glutes', 'Hamstrings'], pattern: 'lunge', compound: true },
+  { id: 'pull_up', name: 'Pull-Up / Lat Pulldown', group: 'back', primary: 'Lats', secondary: ['Upper Back', 'Biceps'], pattern: 'pull', compound: true },
+  { id: 'plyometric', name: 'Plyometric', group: 'quads', primary: 'Quads', secondary: ['Glutes', 'Calves'], pattern: 'compound', compound: true, nonLift: true },
+  { id: 'chop_rotation', name: 'Chop / Rotational Core', group: 'core', primary: 'Obliques', secondary: ['Abs', 'Shoulders'], pattern: 'rotation', compound: false },
+  { id: 'hip_thrust', name: 'Hip Thrust / Glute Bridge', group: 'glutes', primary: 'Glutes', secondary: ['Hamstrings'], pattern: 'hinge', compound: true },
+  { id: 'warmup_mobility', name: 'Warm-Up / Mobility', group: 'core', primary: 'Full Body', secondary: [], pattern: 'hold', compound: false, nonLift: true },
+  { id: 'push_up', name: 'Push-Up', group: 'chest', primary: 'Chest', secondary: ['Shoulders', 'Triceps'], pattern: 'push', compound: true },
+  { id: 'leg_raise', name: 'Leg Raise', group: 'core', primary: 'Abs', secondary: ['Obliques'], pattern: 'isolation', compound: false },
+  { id: 'full_body', name: 'Full Body', group: 'core', primary: 'Full Body', secondary: ['Quads', 'Chest'], pattern: 'compound', compound: true },
+  { id: 'shoulder_stability', name: 'Shoulder Stability', group: 'shoulders', primary: 'Shoulders', secondary: ['Upper Back'], pattern: 'hold', compound: false },
+  { id: 'step_up', name: 'Step-Up', group: 'quads', primary: 'Quads', secondary: ['Glutes'], pattern: 'lunge', compound: false },
+  { id: 'glute_kickback', name: 'Glute Kickback', group: 'glutes', primary: 'Glutes', secondary: ['Hamstrings'], pattern: 'isolation', compound: false },
+  { id: 'leg_curl', name: 'Leg Curl', group: 'hamstrings', primary: 'Hamstrings', secondary: ['Calves'], pattern: 'isolation', compound: false },
+  { id: 'carry', name: 'Carry', group: 'core', primary: 'Full Body', secondary: ['Forearms'], pattern: 'carry', compound: false },
+  { id: 'reverse_fly', name: 'Reverse Fly', group: 'shoulders', primary: 'Shoulders', secondary: ['Upper Back'], pattern: 'pull', compound: false },
+  { id: 'front_raise', name: 'Front Raise', group: 'shoulders', primary: 'Shoulders', secondary: [], pattern: 'isolation', compound: false },
+  { id: 'back_extension', name: 'Back Extension', group: 'core', primary: 'Lower Back', secondary: ['Glutes', 'Hamstrings'], pattern: 'hinge', compound: false },
+  { id: 'cardio', name: 'Cardio', group: 'core', primary: 'Full Body', secondary: [], pattern: 'compound', compound: false, nonLift: true },
+  { id: 'shrug', name: 'Shrug', group: 'back', primary: 'Upper Back', secondary: [], pattern: 'isolation', compound: false },
+  { id: 'leg_extension', name: 'Leg Extension', group: 'quads', primary: 'Quads', secondary: [], pattern: 'isolation', compound: false },
+  { id: 'upright_row', name: 'Upright Row', group: 'shoulders', primary: 'Shoulders', secondary: ['Upper Back'], pattern: 'pull', compound: false },
 ]
 
 /** Canonical id for a name: "Chest Press" -> "chest_press". */

@@ -15,13 +15,29 @@ describe('taxonomy shape', () => {
     expect(COMPOUND_GROUPINGS).toEqual(['Push', 'Pull', 'Legs', 'Full Body'])
   })
 
-  it('seed list is the 14 canonical exercises: 12 starters + Incline / Decline Chest Press', () => {
+  it('list is the 36 canonical exercises: 14 starters + 22 approved Nov 10, 2026', () => {
     expect(CANONICAL_EXERCISES.map(e => e.id)).toEqual([
       'chest_press', 'incline_chest_press', 'decline_chest_press', 'cable_fly',
       'curl', 'triceps_extension', 'hip_adduction',
       'row', 'shoulder_press', 'lateral_raise', 'squat', 'deadlift',
       'calf_raise', 'crunch',
+      'plank_core_stability', 'lunge', 'pull_up', 'plyometric', 'chop_rotation',
+      'hip_thrust', 'warmup_mobility', 'push_up', 'leg_raise', 'full_body',
+      'shoulder_stability', 'step_up', 'glute_kickback', 'leg_curl', 'carry',
+      'reverse_fly', 'front_raise', 'back_extension', 'cardio', 'shrug',
+      'leg_extension', 'upright_row',
     ])
+    // Nov 10, 2026: Plank + Core Stability merged into one canonical;
+    // Hip Stability is gone (mobility folded into Warm-Up, loaded
+    // kickbacks into Glute Kickback); no splits anywhere else.
+    expect(findCanonical('Plank / Core Stability').id).toBe('plank_core_stability')
+    expect(findCanonical('Plank')).toBeNull()
+    expect(findCanonical('Core Stability')).toBeNull()
+    expect(findCanonical('Hip Stability')).toBeNull()
+    expect(findCanonical('Warm-Up / Mobility').nonLift).toBe(true)
+    expect(findCanonical('Plyometric').nonLift).toBe(true)
+    expect(findCanonical('Cardio').nonLift).toBe(true)
+    expect(findCanonical('Chest Press').nonLift).toBeUndefined()
     // Q1: Incline is its own canonical (angle changes emphasis); Flat vs
     // Machine stays one exercise. Decline is assumed separate by the same
     // rule and marked provisional, pending confirmation.
@@ -39,7 +55,7 @@ describe('taxonomy shape', () => {
     for (const e of CANONICAL_EXERCISES) {
       expect(e.primary).toBeTruthy()
       expect(Array.isArray(e.secondary)).toBe(true)
-      expect(['push', 'pull', 'squat', 'hinge', 'isolation']).toContain(e.pattern)
+      expect(['push', 'pull', 'squat', 'hinge', 'lunge', 'carry', 'hold', 'rotation', 'compound', 'isolation']).toContain(e.pattern)
       expect(typeof e.compound).toBe('boolean')
       expect(MUSCLE_GROUPS.some(g => g.id === e.group)).toBe(true)
     }
@@ -53,11 +69,14 @@ describe('taxonomy shape', () => {
   })
 
   it('groups list their canonical exercises', () => {
-    expect(exercisesForGroup('chest').map(e => e.id)).toEqual(['chest_press', 'incline_chest_press', 'decline_chest_press', 'cable_fly'])
-    expect(exercisesForGroup('quads').map(e => e.id)).toEqual(['squat'])
-    expect(exercisesForGroup('hamstrings').map(e => e.id)).toEqual(['deadlift'])
-    expect(exercisesForGroup('glutes').map(e => e.id)).toEqual(['hip_adduction'])
+    expect(exercisesForGroup('chest').map(e => e.id)).toEqual(['chest_press', 'incline_chest_press', 'decline_chest_press', 'cable_fly', 'push_up'])
+    expect(exercisesForGroup('quads').map(e => e.id)).toEqual(['squat', 'lunge', 'plyometric', 'step_up', 'leg_extension'])
+    expect(exercisesForGroup('hamstrings').map(e => e.id)).toEqual(['deadlift', 'leg_curl'])
+    expect(exercisesForGroup('glutes').map(e => e.id)).toEqual(['hip_adduction', 'hip_thrust', 'glute_kickback'])
     expect(exercisesForGroup('calves').map(e => e.id)).toEqual(['calf_raise'])
+    expect(exercisesForGroup('back').map(e => e.id)).toEqual(['row', 'pull_up', 'shrug'])
+    expect(exercisesForGroup('shoulders').map(e => e.id)).toEqual(['shoulder_press', 'lateral_raise', 'shoulder_stability', 'reverse_fly', 'front_raise', 'upright_row'])
+    expect(exercisesForGroup('core').map(e => e.id)).toEqual(['crunch', 'plank_core_stability', 'chop_rotation', 'warmup_mobility', 'leg_raise', 'full_body', 'carry', 'back_extension', 'cardio'])
     // Deadlift is a multi-muscle compound: one primary + secondaries.
     expect(findCanonical('Deadlift')).toEqual(expect.objectContaining({
       primary: 'Hamstrings', secondary: ['Glutes', 'Back', 'Quads'],
@@ -126,10 +145,19 @@ describe('alias model', () => {
 
   it('an alias whose exercise is not yet in the seed list still yields one canonical exercise', () => {
     const { canonical } = resolveCanonical('mov-7', {
-      'mov-7': { exercise: 'Hip Thrust', category: 'Glutes', source: 'tonal' },
+      'mov-7': { exercise: 'Kettlebell Swing', category: 'Glutes', source: 'tonal' },
+    })
+    expect(canonical.id).toBe('kettlebell_swing')
+    expect(canonical.name).toBe('Kettlebell Swing')
+    expect(canonical.primary).toBe('Glutes')
+  })
+
+  it('Hip Thrust now resolves to the approved canonical, with its alias intact', () => {
+    const { canonical, alias } = resolveCanonical('mov-7', {
+      'mov-7': { exercise: 'Hip Thrust / Glute Bridge', category: 'Glutes', source: 'tonal', sourceName: 'Barbell Hip Thrust', gym: 'Home / Tonal', equipment: 'Tonal' },
     })
     expect(canonical.id).toBe('hip_thrust')
-    expect(canonical.name).toBe('Hip Thrust')
     expect(canonical.primary).toBe('Glutes')
+    expect(alias.aliasName).toBe('Barbell Hip Thrust')
   })
 })
